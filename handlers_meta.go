@@ -1,7 +1,7 @@
 package main
 
 import (
-	"./cli"
+	"gdrive/cli"
 	"fmt"
 	"os"
 	"runtime"

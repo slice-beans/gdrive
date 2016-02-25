@@ -1,7 +1,7 @@
 package main
 
 import (
-	"./drive"
+	"gdrive/drive"
 	"encoding/json"
 	"os"
 )

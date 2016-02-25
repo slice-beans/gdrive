@@ -1,9 +1,9 @@
 package main
 
 import (
-	"./auth"
-	"./cli"
-	"./drive"
+	"gdrive/auth"
+	"gdrive/cli"
+	"gdrive/drive"
 	"fmt"
 	"io"
 	"io/ioutil"
