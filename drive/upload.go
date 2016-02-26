@@ -42,7 +42,15 @@ func (self *Drive) Upload(args UploadArgs) error {
 	}
 
 	if args.Recursive {
-		return self.uploadRecursive(args)
+
+		ch := make (chan bool, 10)
+		err := self.uploadRecursive(args, ch)
+
+		for i := 0; i < 10; i++ {
+			ch <- true;
+		}
+
+		return err;
 	}
 
 	info, err := os.Stat(args.Path)
@@ -80,7 +88,7 @@ func (self *Drive) Upload(args UploadArgs) error {
 	return nil
 }
 
-func (self *Drive) uploadRecursive(args UploadArgs) error {
+func (self *Drive) uploadRecursive(args UploadArgs, ch chan bool) error {
 	info, err := os.Stat(args.Path)
 	if err != nil {
 		return fmt.Errorf("Failed stat file: %s", err)
@@ -88,14 +96,15 @@ func (self *Drive) uploadRecursive(args UploadArgs) error {
 
 	if info.IsDir() {
 		args.Name = ""
-		return self.uploadDirectory(args)
+		return self.uploadDirectory(args, ch)
 	} else {
-		_, _, err := self.uploadFile(args)
-		return err
+		ch <- true
+		go self.async_uploadFile(args, ch)
+		return nil
 	}
 }
 
-func (self *Drive) uploadDirectory(args UploadArgs) error {
+func (self *Drive) uploadDirectory(args UploadArgs, ch chan bool) error {
 	srcFile, srcFileInfo, err := openFile(args.Path)
 	if err != nil {
 		return err
@@ -128,13 +137,22 @@ func (self *Drive) uploadDirectory(args UploadArgs) error {
 		newArgs.Parents = []string{f.Id}
 
 		// Upload
-		err = self.uploadRecursive(newArgs)
+		err = self.uploadRecursive(newArgs, ch)
 		if err != nil {
 			return err
 		}
 	}
 
 	return nil
+}
+
+func (self *Drive) async_uploadFile(args UploadArgs, ch chan bool) () {
+	
+	defer func () {
+		<- ch
+	}()
+
+	self.uploadFile(args)
 }
 
 func (self *Drive) uploadFile(args UploadArgs) (*drive.File, int64, error) {
