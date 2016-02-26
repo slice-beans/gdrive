@@ -12,8 +12,8 @@ import (
 	"path/filepath"
 )
 
-const ClientId = "367116221053-7n0vf5akeru7on6o2fjinrecpdoe99eg.apps.googleusercontent.com"
-const ClientSecret = "1qsNodXNaWq1mQuBjUjmvhoO"
+const ClientId = "898818517276-lp8epk1bffo6aac3oruof6u7gido2rd8.apps.googleusercontent.com"
+const ClientSecret = "oQrEZGMplNc3M7MVgHwgWv4H"
 const TokenFilename = "token_v2.json"
 const DefaultCacheFileName = "file_cache.json"
 
