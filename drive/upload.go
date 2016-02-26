@@ -43,10 +43,10 @@ func (self *Drive) Upload(args UploadArgs) error {
 
 	if args.Recursive {
 
-		ch := make (chan bool, 10)
+		ch := make (chan bool, 3)
 		err := self.uploadRecursive(args, ch)
 
-		for i := 0; i < 10; i++ {
+		for i := 0; i < 3; i++ {
 			ch <- true;
 		}
 
