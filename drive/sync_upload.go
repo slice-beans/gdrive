@@ -190,6 +190,8 @@ func (self *Drive) uploadMissingFiles(missingFiles []*LocalFile, files *syncFile
 		fmt.Fprintf(args.Out, "\n%d remote files are missing\n", missingCount)
 	}
 
+	ch := make(chan bool, 3)
+
 	for i, lf := range missingFiles {
 		parentPath := parentFilePath(lf.relPath)
 		parent, ok := files.findRemoteByPath(parentPath)
@@ -199,11 +201,17 @@ func (self *Drive) uploadMissingFiles(missingFiles []*LocalFile, files *syncFile
 
 		fmt.Fprintf(args.Out, "[%04d/%04d] Uploading %s -> %s\n", i+1, missingCount, lf.relPath, filepath.Join(files.root.file.Name, lf.relPath))
 
-		err := self.uploadMissingFile(parent.file.Id, lf, args, 0)
-		if err != nil {
-			return err
-		}
+		ch <- true
+
+		go self.uploadMissingFile(parent.file.Id, lf, args, 0, ch)
+		//if err != nil {
+		//	return err
+		//}
 	}
+
+	for i := 0; i < 3; i++ {
+        	ch <- true;
+        }
 
 	return nil
 }
@@ -281,7 +289,7 @@ func (self *Drive) createMissingRemoteDir(args createMissingRemoteDirArgs) (*dri
 	return f, nil
 }
 
-func (self *Drive) uploadMissingFile(parentId string, lf *LocalFile, args UploadSyncArgs, try int) error {
+func (self *Drive) uploadMissingFile(parentId string, lf *LocalFile, args UploadSyncArgs, try int, ch chan bool) error {
 	if args.DryRun {
 		return nil
 	}
@@ -292,7 +300,10 @@ func (self *Drive) uploadMissingFile(parentId string, lf *LocalFile, args Upload
 	}
 
 	// Close file on function exit
-	defer srcFile.Close()
+	defer func() {
+		srcFile.Close()
+		<- ch
+	}()
 
 	// Instantiate drive file
 	dstFile := &drive.File{
@@ -315,7 +326,7 @@ func (self *Drive) uploadMissingFile(parentId string, lf *LocalFile, args Upload
 		if isBackendError(err) && try < MaxBackendErrorRetries {
 			exponentialBackoffSleep(try)
 			try++
-			return self.uploadMissingFile(parentId, lf, args, try)
+			return self.uploadMissingFile(parentId, lf, args, try, ch)
 		} else {
 			return fmt.Errorf("Failed to upload file: %s", err)
 		}
